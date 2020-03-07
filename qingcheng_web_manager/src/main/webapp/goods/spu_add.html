@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>添加商品</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/theme-chalk.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="hold-transition">
+<div id="app">
+
+    <div class="content-header">
+        <h1>管理
+            <small>添加商品</small>
+        </h1>
+        <el-breadcrumb separator-class="el-icon-arrow-right" class="breadcrumb">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>管理</el-breadcrumb-item>
+            <el-breadcrumb-item>添加商品</el-breadcrumb-item>
+        </el-breadcrumb>
+    </div>
+
+    <div class="app-container">
+        <div class="box">
+            <el-form :inline="true">
+                <el-card>
+                    <el-steps :space="400" :active="currentStep" align-center finish-status="success" algin-center>
+                        <el-step v-for="v of stepConfig" :key="v.title" :title="v.title"></el-step>
+                    </el-steps>
+                    <div v-show="currentStep === 0" class="mg-tp-m">
+                        <el-row style="height:200px;padding-top: 30px">
+                            <el-col :span="20" :offset="3">
+                                <el-form-item label="请选择一级分类：">
+                                    <el-select v-model="pojo.spu.category1Id"
+                                               @change="searchMap.parentId=pojo.spu.category1Id;handleChange(2)"
+                                               clearable
+                                               filterable
+                                               placeholder="请选择一级分类">
+                                        <el-option
+                                                v-for="item in category1"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="请选择二级分类：">
+                                    <el-select v-model="pojo.spu.category2Id"
+                                               @change="searchMap.parentId=pojo.spu.category2Id;handleChange(3)"
+                                               clearable
+                                               filterable
+                                               placeholder="请选择二级分类">
+                                        <el-option
+                                                v-for="item in category2"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="请选择三级分类：">
+                                    <el-select v-model="pojo.spu.category3Id" clearable filterable
+                                               placeholder="请选择三级分类">
+                                        <el-option
+                                                v-for="item in category3"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :offset="2" v-if="category1Name">
+                                您当前选择的商品类别是：
+                                <el-breadcrumb separator-class="el-icon-arrow-right">
+                                    <el-breadcrumb-item v-if="category1Name">{{category1Name}}</el-breadcrumb-item>
+                                    <el-breadcrumb-item v-if="category2Name">{{category2Name}}</el-breadcrumb-item>
+                                    <el-breadcrumb-item v-if="category3Name">{{category3Name}}</el-breadcrumb-item>
+                                </el-breadcrumb>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :offset="18">
+                                <div class="btn-group align-center">
+                                    <!--TODO                                            :disabled="pojo.spu.category1Id==null||pojo.spu.category2Id==null||pojo.spu.category3Id==null"-->
+                                    <el-button
+                                            type="primary"
+                                            class="submit" @click="stepOneFormSubmit">下一步
+                                    </el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <div v-show="currentStep === 1" class="mg-tp-m">
+                        <el-row style="padding-top: 40px">
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 商品分类：">
+                                    {{category1Name}}>{{category2Name}}>{{category3Name}}
+                                    <el-button type="text" icon="el-icon-edit" @click="preStep(0)">编辑</el-button>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 商品名称：">
+                                    <el-input v-model="pojo.spu.name" style="width:600px;" placeholder="商品名称"
+                                              class="filter-item"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 副标题：">
+                                    <el-input v-model="pojo.spu.caption" style="width:600px;margin-left: 13px"
+                                              placeholder="副标题 " class="filter-item"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 商品品牌：">
+                                    <el-select v-model="pojo.spu.brandId"
+                                               clearable
+                                               filterable
+                                               placeholder="请选择商品品牌">
+                                        <el-option
+                                                v-for="item in brand"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 商品介绍：">
+                                    <!--TODO:需要实现文本编辑器-->
+                                    <el-input type="textarea" style="width: 400px;" v-model="pojo.spu.introduction"
+                                              :autosize="{ minRows: 8, maxRows: 8}" placeholder="请输入内容"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 运费模板：">
+                                    <el-select v-model="pojo.spu.freightId"
+                                               clearable
+                                               filterable
+                                               placeholder="请选择运费模板">
+                                        <!--TODO:没有从后台获取数据-->
+                                        <el-option
+                                                v-for="item in freight"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 商品货号：">
+                                    <el-input v-model="pojo.spu.sn" style="width:600px"
+                                              placeholder="商品货号" class="filter-item"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 服务保证：">
+                                    <el-checkbox-group v-model="pojo.spu.saleService">
+                                        <el-checkbox label="无忧退货"></el-checkbox>
+                                        <el-checkbox label="快速退款"></el-checkbox>
+                                        <el-checkbox label="免费包邮"></el-checkbox>
+                                    </el-checkbox-group>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :offset="18">
+                                <div class="btn-group align-center">
+                                    <el-button type="default" @click="preStep(0)">上一步</el-button>
+                                    <el-button type="primary" class="submit" @click="stepTwoFormSubmit">下一步</el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <div v-show="currentStep === 2" class="mg-tp-m">
+                        <el-row style="padding-top: 40px">
+                            <el-col :span="40" :offset="6">
+                                <el-form-item label="* 规格参数组：">
+                                    <el-select v-model="pojo.spu.templateId"
+                                               @change="changeTemplate(pojo.spu.templateId)"
+                                               clearable
+                                               filterable
+                                               placeholder="请选择规格参数组">
+                                        <el-option
+                                                v-for="item in template"
+                                                :key="item.id"
+                                                :label="item.name"
+                                                :value="item.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row v-if="pojo.spu.templateId">
+                            <el-col :offset="6">
+                                * 商品规格：
+                            </el-col>
+                            <el-col :offset="8" v-for="(item, index) in spec" :key="index">
+                                <el-form-item :label="item.name+'：'">
+                                    <el-checkbox-group v-model="specValues[index]">
+                                        <el-checkbox :label="options" :key="index"
+                                                     @change="changeSpecValues()"
+                                                     v-for="(options, index) of item.options.split(',')"></el-checkbox>
+                                    </el-checkbox-group>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row v-if="pojo.spu.templateId">
+                            <el-col :offset="6">
+                                <el-table
+                                        :data="pojo.skuList"
+                                        border
+                                        style="width: 800px">
+                                    <el-table-column
+                                            v-for="(sp, index) in spec"
+                                            prop="sp"
+                                            :label="sp.name"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.spec"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="sn"
+                                            label="* 商品条码"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.sn"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="price"
+                                            label="* 销售价格"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.price"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="num"
+                                            label="* 商品库存"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.num"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="alertNum"
+                                            label="* 库存预警值"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.alertNum"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="weight"
+                                            label="* 商品重量"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-input
+                                                    placeholder="请输入内容"
+                                                    v-model="scope.row.weight"
+                                                    clearable></el-input>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="image"
+                                            label="* 图片"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <img :src="scope.row.image" width="80px" height="80px" alt="">
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column
+                                            prop="date"
+                                            label="操作"
+                                            fixed="right"
+                                            width="100%">
+                                        <template slot-scope="scope">
+                                            <el-button type="text" size="small">删除
+                                            </el-button>
+                                            <el-button type="text" size="small">上传图片</el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                                <el-button type="default" @click="addSku()">添加一个Sku</el-button>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :offset="18">
+                                <div class="btn-group align-center mg-tp-m">
+                                    <el-button type="default" @click="preStep(1)">上一步</el-button>
+                                    <el-button type="primary" class="submit" @click="stepThreeFormSubmit">下一步
+                                    </el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    {{specValues}}
+                    {{pojo.skuList}}
+                    <div v-show="currentStep === 3" class="mg-tp-m">
+                        <el-row>
+                            <el-col :span="16" :offset="1">
+                                第四步表单组件
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :offset="6">
+                                <div class="btn-group align-center mg-tp-m">
+                                    <el-button type="default" @click="preStep(2)">上一步</el-button>
+                                    <el-button type="primary" class="submit" @click="stepFourFormSubmit">确认</el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-card>
+            </el-form>
+        </div>
+    </div>
+</div>
+
+<!-- 图片上传代码 如页面有图片上传功能放开注释 ****
+<el-form-item label="图片">
+    <el-upload
+            class="avatar-uploader"
+            action="/upload/native.do"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload">
+        <img v-if="imageUrl" :src="imageUrl" class="avatar">
+        <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+    </el-upload>
+</el-form-item>
+-->
+
+</div>
+</body>
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                currentPage: 1,
+                total: 10,
+                size: 10,
+                searchMap: {},
+                pojo: {
+                    spu: {
+                        saleService: ['无忧退货'],
+                        paraItems: {},
+                        specItems: {},
+                    },
+                    skuList: []
+                },
+                formVisible: false,
+                imageUrl: '',
+                testValue1: "",
+                testValue2: "",
+                testValue: "测试值3",
+                currentStep: 0,
+                stepConfig: [
+                    {
+                        icon: "el-icon-edit-outline",
+                        component: "DeployInfo",
+                        title: "选择商品分类"
+                    },
+                    {
+                        icon: "el-icon-setting",
+                        component: "ConfigInfo",
+                        title: "填写商品信息"
+                    },
+                    {
+                        icon: "el-icon-upload",
+                        component: "NodeInfo",
+                        title: "填写商品属性"
+                    },
+                    {
+                        icon: "el-icon-upload",
+                        component: "DeployCheck",
+                        title: "验证"
+                    }
+                ],
+                category1: [],
+                category2: [],
+                category3: [],
+                brand: [],
+                freight: [],
+                template: [],
+                para: [],
+                spec: [],
+                specValues: [],
+                skuSpec:[],
+            }
+        },
+        computed: {
+            category1Name() {
+                let name;
+                this.category1.forEach((index) => {
+                    if (index.id === this.pojo.spu.category1Id) {
+                        name = index.name;
+                    }
+                });
+                return name;
+            },
+            category2Name() {
+                let name;
+                this.category2.forEach((index) => {
+                    if (index.id === this.pojo.spu.category2Id) {
+                        name = index.name;
+                    }
+                });
+                return name;
+            },
+            category3Name() {
+                let name;
+                this.category3.forEach((index) => {
+                    if (index.id === this.pojo.spu.category3Id) {
+                        name = index.name;
+                    }
+                });
+                return name;
+            }
+        },
+        created() {
+            this.searchMap.parentId = 0;
+            axios.post(`/category/findList.do`, this.searchMap).then(response => {
+                this.category1 = response.data
+            });
+            axios.get(`/brand/findAll.do`).then(response => {
+                this.brand = response.data.data;
+            });
+            axios.get(`/template/findAll.do`).then(response => {
+                this.template = response.data;
+            });
+            this.fetchData();
+        },
+        methods: {
+            handleChange(index) {
+                axios.post(`/category/findList.do`, this.searchMap).then(response => {
+                    if (index == 2) {
+                        this.category2 = response.data
+                    } else if (index == 3) {
+                        this.category3 = response.data
+                    }
+                });
+            },
+            changeTemplate(id) {
+                axios.get(`/para/findParaByTemplateId.do?id=` + id).then(response => {
+                    this.para = response.data;
+                });
+                axios.get(`/spec/findSpecByTemplateId.do?id=` + id).then(response => {
+                    this.spec = response.data;
+                    this.spec.forEach((index) => {
+                        this.$set(this.pojo.spu.specItems, index.name, []);
+                        this.specValues.push([]);
+                    });
+                });
+            },
+            // changeSpecValues() {
+            //     let j = 1;
+            //     this.specValues.forEach((index,value) => {
+            //         j *= index.length;
+            //     });
+            //     for (let i = 0; i < j; i++) {
+            //         let sku = {};
+            //         this.pojo.skuList.push(sku);
+            //     };
+            // },
+            setSpecItems() {
+                this.specValues.forEach((index, value) => {
+                    this.pojo.spu.specItems[this.spec[value].name].push(index);
+                });
+            },
+            addSku() {
+                let spec = {};
+                this.spec.forEach((index) => {
+                    this.$set(spec,index.name,"");
+                });
+                this.pojo.skuList.push({spec:spec});
+            },
+            stepOneFormSubmit() {
+                this.currentStep = 1;
+            },
+            stepTwoFormSubmit() {
+                this.currentStep = 2;
+            },
+            stepThreeFormSubmit() {
+                console.log(this.pojo);
+                this.currentStep = 3;
+            },
+            stepFourFormSubmit() {
+            },
+            preStep(step) {
+                this.currentStep = step;
+            },
+            fetchData() {
+                axios.post(`/spu/findPage.do?page=${this.currentPage}&size=${this.size}`, this.searchMap).then(response => {
+                    this.tableData = response.data.rows;
+                    this.total = response.data.total;
+                });
+            },
+            save() {
+                // this.pojo.image= this.imageUrl; //如页面有图片上传功能放开注释
+                axios.post(`/spu/${this.pojo.id == null ? 'add' : 'update'}.do`, this.pojo).then(response => {
+                    this.fetchData(); //刷新列表
+                    this.formVisible = false;//关闭窗口
+                });
+            },
+            edit(id) {
+                this.formVisible = true; // 打开窗口
+                // 调用查询
+                axios.get(`/spu/findById.do?id=${id}`).then(response => {
+                    this.pojo = response.data;
+                    // this.imageUrl=this.pojo.image //显示图片  如页面有图片上传功能放开注释
+                })
+            },
+            dele(id) {
+                this.$confirm('确定要删除此记录吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`/spu/delete.do?id=${id}`).then(response => {
+                        this.fetchData(); //刷新列表
+                    })
+                })
+            },
+            /* ****图片上传相关代码  如页面有图片上传功能放开注释 ****
+            handleAvatarSuccess(res, file) {
+                this.imageUrl = file.response;
+            },
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg';
+                const isLt2M = file.size / 1024 / 1024 < 2;
+
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只能是 JPG 格式!');
+                }
+                if (!isLt2M) {
+                    this.$message.error('上传头像图片大小不能超过 2MB!');
+                }
+                return isJPG && isLt2M;
+            }*/
+        }
+    })
+</script>
+</html>

@@ -1,0 +1,30 @@
+package com.cg.qingcheng.service.order;
+
+import com.cg.qingcheng.entity.PageResult;
+import com.cg.qingcheng.pojo.order.OrderConfig;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * orderConfig业务逻辑层
+ */
+public interface OrderConfigService {
+
+    public List<OrderConfig> findAll();
+
+    public PageResult<OrderConfig> findPage(int page, int size);
+
+    public List<OrderConfig> findList(Map<String, Object> searchMap);
+
+    public PageResult<OrderConfig> findPage(Map<String, Object> searchMap, int page, int size);
+
+    public OrderConfig findById(Integer id);
+
+    public void add(OrderConfig orderConfig);
+
+    public void update(OrderConfig orderConfig);
+
+    public void delete(Integer id);
+
+}

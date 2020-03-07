@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>商品管理</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/theme-chalk.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="hold-transition">
+<div id="app">
+
+    <div class="content-header">
+        <h1>管理
+            <small>商品管理</small>
+        </h1>
+        <el-breadcrumb separator-class="el-icon-arrow-right" class="breadcrumb">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>管理</el-breadcrumb-item>
+            <el-breadcrumb-item>商品管理</el-breadcrumb-item>
+        </el-breadcrumb>
+    </div>
+
+    <div class="app-container">
+        <div class="box">
+            <div class="filter-container">
+                <el-button :type="idActive==1?'primary':''" class="dalfBut" @click="idActive=1;searchMap={};fetchData()">全部商品({{allTotal}})</el-button>
+                <el-button :type="idActive==2?'primary':''" class="dalfBut" @click="idActive=2;searchMap={};searchMap.isMarketable=1;fetchData()">已上架({{marketable}})</el-button>
+                <el-button :type="idActive==3?'primary':''" class="dalfBut" @click="idActive=3;searchMap={};searchMap.isMarketable=0;fetchData()">未上架({{noMarketable}})</el-button>
+                <el-button :type="idActive==4?'primary':''" class="dalfBut" @click="idActive=4;searchMap={};searchMap.status=0;fetchData()">待审核({{notCheck}})</el-button>
+                <el-button :type="idActive==5?'primary':''" class="dalfBut" @click="idActive=5;searchMap={};searchMap.status=2;fetchData()">未通过({{notPass}})</el-button>
+                <!--查询表单-->
+                <el-form :inline="true">
+                    <el-form-item label="输入搜索">
+                        <el-input v-model="searchMap.name" placeholder="商品名称" class="filter-item"></el-input>
+                    </el-form-item>
+                    <el-form-item label="商品分类">
+                        <el-select v-model="searchMap.category3Id" clearable filterable placeholder="请选择">
+                            <el-option
+                                    v-for="item in category"
+                                    :key="item.id"
+                                    :label="item.name"
+                                    :value="item.id">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="商品品牌">
+                        <el-select v-model="searchMap.brandId" clearable filterable placeholder="请选择">
+                            <el-option
+                                    v-for="item in brand"
+                                    :key="item.id"
+                                    :label="item.name"
+                                    :value="item.id">
+                            </el-option>
+                        </el-select>
+                        </el-input>
+                    </el-form-item>
+                    <el-button class="dalfBut" @click="fetchData()">查询</el-button>
+                    <el-button type="primary" class="butT" onclick="location.href='spu_add.html'">新增</el-button>
+                </el-form>
+            </div>
+
+            <el-table :data="tableData" stripe border style="width: 100%">
+                <el-table-column prop="id" label="id" width="180"></el-table-column>
+                <el-table-column prop="image" label="商品图片" width="180">
+                    <template slot-scope="scope">
+                        <img :src="scope.row.image">
+                    </template>
+                </el-table-column>
+                <el-table-column prop="name" label="商品名称" width="180">
+
+                </el-table-column>
+                <el-table-column prop="sn" label="货号" width="180"></el-table-column>
+                <el-table-column prop="isMarketable" label="标签" width="180">
+                    <template slot-scope="scope">
+                        上架：{{scope.row.isMarketable==1?"是":"否"}}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="saleNum" label="销量" width="180"></el-table-column>
+                <el-table-column prop="status" label="审核状态" width="180">
+                    <template slot-scope="scope">
+                        {{scope.row.status==1?"已审核":"未审核"}}<br>
+                        <el-button v-if="scope.row.status==1" type="text" class="dalfBut"
+                                   @click="checkLog(scope.row.id)">审核详情
+                        </el-button>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180">
+                    <template slot-scope="scope">
+                        <el-button type="text" class="dalfBut" size="mini" @click="fetchData()">查看</el-button>
+                        <el-button type="text" class="dalfBut" size="mini" @click="fetchData()">编辑</el-button>
+                        <br>
+                        <el-button type="text" class="dalfBut" size="mini" @click="openLog(scope.row.id)">日志</el-button>
+                        <el-button type="text" class="dalfBut" size="mini" @click="dele(scope.row.id)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="pagination-container">
+                <el-pagination
+                        class="pagiantion"
+                        @size-change="fetchData"
+                        @current-change="fetchData"
+                        :current-page.sync="currentPage"
+                        :page-sizes="[10, 20, 30, 40]"
+                        :page-size="size"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="total">
+                </el-pagination>
+            </div>
+            <!--审核详情-->
+            <el-dialog title="审核详情" :visible.sync="formVisible">
+                <el-table :data="checkData" stripe border style="width: 100%">
+                    <el-table-column prop="checkTime" label="审核时间" width="180"></el-table-column>
+                    <el-table-column label="审核人员" width="120">
+                        <template slot-scope="scope">
+                            {{scope.row.checkName==''?'admin':scope.row.checkName}}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="status" label="审核结果" width="150">
+                        <template slot-scope="scope">
+                            {{scope.row.status==1?'通过':'未通过'}}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="details" label="反馈详情" style="width: 100%"></el-table-column>
+                </el-table>
+            </el-dialog>
+
+            <!--商品日志-->
+            <el-dialog title="商品日志" :visible.sync="logFormVisible" :width="width">
+                <el-table :data="logData" stripe border style="width: 100%">
+                    <el-table-column prop="id" label="编号" width="80"></el-table-column>
+                    <el-table-column prop="columnName" label="修改的项" width="120">
+
+                    </el-table-column>
+                    <el-table-column prop="oldValue" label="修改前的值" style="width: 100%"></el-table-column>
+                    <el-table-column prop="newValue" label="修改后的值" style="width: 100%"></el-table-column>
+                    <el-table-column label="操作人员" width="80">
+                        <template slot-scope="scope">
+                            {{scope.row.operator==''?'admin':scope.row.operator}}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="creatTime" label="操作时间" style="width: 100%"></el-table-column>
+                </el-table>
+            </el-dialog>
+        </div>
+    </div>
+
+
+</div>
+</body>
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                currentPage: 1,
+                total: 10,
+                size: 10,
+                searchMap: {},
+                pojo: {},
+                formVisible: false,
+                imageUrl: '',
+                category: null,
+                brand: null,
+                marketable: null,
+                noMarketable: null,
+                notPass: null,
+                notCheck: null,
+                checkData: [],
+                allTotal: null,
+                logData: null,
+                logFormVisible: false,
+                width: "900px",
+                idActive:'1'
+            }
+        },
+        created() {
+            this.fetchData();
+        },
+        methods: {
+            fetchData() {
+                axios.post(`/spu/findPage.do?page=${this.currentPage}&size=${this.size}`, this.searchMap).then(response => {
+                    this.tableData = response.data.rows;
+                    this.total = response.data.total;
+                });
+                axios.get("/brand/findAll.do").then(res => {
+                    if (res.status == 200) {
+                        this.brand = res.data.data;
+                    }
+                });
+                axios.get("/category/findAll.do").then(res => {
+                    if (res.status == 200) {
+                        this.category = res.data;
+                    }
+                });
+                // 总-未上架=已上架    未上架-待审核=未通过
+                axios.get("/spu/getTotal.do").then(res => {
+                    if (res.status == 200) {
+                        this.allTotal = res.data.total;
+                        this.noMarketable = res.data.noMarketable;
+                        this.notPass = res.data.notPass;
+                        this.notCheck = res.data.notCheck;
+                        this.marketable = res.data.total - res.data.noMarketable;
+                    }
+                });
+            },
+            save() {
+                // this.pojo.image= this.imageUrl; //如页面有图片上传功能放开注释
+                axios.post(`/spu/${this.pojo.id == null ? 'add' : 'update'}.do`, this.pojo).then(response => {
+                    this.fetchData(); //刷新列表
+                    this.formVisible = false;//关闭窗口
+                });
+            },
+            edit(id) {
+                this.formVisible = true; // 打开窗口
+                // 调用查询
+                axios.get(`/spu/findById.do?id=${id}`).then(response => {
+                    this.pojo = response.data;
+                    // this.imageUrl=this.pojo.image //显示图片  如页面有图片上传功能放开注释
+                })
+            },
+            dele(id) {
+                this.$confirm('确定要删除此商品吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`/spu/delete.do?id=${id}`).then(response => {
+                        this.fetchData(); //刷新列表
+                    })
+                })
+            },
+            checkLog(id) {
+                this.formVisible = true;
+                axios.get("/spu/getCheckLog.do?id=" + id).then(res => {
+                    if (res.status == 200) {
+                        this.checkData = res.data;
+                    }
+                })
+            },
+            openLog(id) {
+                this.logFormVisible = true;
+                axios.get("/spu/getSpuLog.do?id=" + id).then(res => {
+                    if (res.status == 200) {
+                        this.logData = res.data;
+                    }
+                })
+            }
+            /* ****图片上传相关代码  如页面有图片上传功能放开注释 ****
+            handleAvatarSuccess(res, file) {
+                this.imageUrl = file.response;
+            },
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg';
+                const isLt2M = file.size / 1024 / 1024 < 2;
+
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只能是 JPG 格式!');
+                }
+                if (!isLt2M) {
+                    this.$message.error('上传头像图片大小不能超过 2MB!');
+                }
+                return isJPG && isLt2M;
+            }*/
+        }
+    })
+</script>
+</html>

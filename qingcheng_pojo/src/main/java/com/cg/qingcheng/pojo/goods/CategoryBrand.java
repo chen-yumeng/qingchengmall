@@ -1,0 +1,37 @@
+package com.cg.qingcheng.pojo.goods;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.io.Serializable;
+
+/**
+ * @program: qingcheng_parent->CategoryBrand
+ * @description:
+ * @author: cg
+ * @create: 2020-02-25 13:08
+ **/
+@Table(name = "tb_category_brand")
+public class CategoryBrand implements Serializable {
+
+    @Id
+    private Integer categoryId;
+
+    @Id
+    private Integer brandId;
+
+    public Integer getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Integer categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public Integer getBrandId() {
+        return brandId;
+    }
+
+    public void setBrandId(Integer brandId) {
+        this.brandId = brandId;
+    }
+}

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>品牌管理</title>
+    <link rel="stylesheet" href="../css/elementui.css">
+    <style>
+        .avatar-uploader .el-upload {
+            border: 1px dashed #d9d9d9;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .avatar-uploader .el-upload:hover {
+            border-color: #409EFF;
+        }
+        .avatar-uploader-icon {
+            font-size: 28px;
+            color: #8c939d;
+            width: 178px;
+            height: 178px;
+            line-height: 178px;
+            text-align: center;
+        }
+        .avatar {
+            width: 178px;
+            height: 178px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<script src="../js/vue.js"></script>
+<script src="../js/elementui.js"></script>
+<script src="../js/axios.js"></script>
+<div id="app">
+    <el-form :inline="true" :model="searchMap" class="demo-form-inline">
+        <el-form-item label="品牌名称">
+            <el-input v-model="searchMap.name" placeholder="品牌名称" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="品牌首字母">
+            <el-input v-model="searchMap.letter" placeholder="品牌首字母" clearable></el-input>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="fetchData">查询</el-button>
+            <el-button type="primary" @click="addBrand">新增</el-button>
+        </el-form-item>
+    </el-form>
+
+
+    <el-dialog :title="isAddOrEdit==1?'新增品牌':'编辑品牌'" :visible.sync="formVisible" destroy-on-close="true">
+        <el-form :model="brand" class="demo-form-inline" label-width="100px">
+            <el-form-item label="品牌名称" prop="name">
+                <el-input v-model="brand.name" placeholder="品牌名称" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="品牌首字母" prop="letter">
+                <el-input v-model="brand.letter" placeholder="品牌首字母" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="品牌图片" prop="image">
+                <el-upload
+                        class="avatar-uploader"
+                        action="/upload/oss.do?folder=brand"
+                        :show-file-list="false"
+                        :on-success="handleAvatarSuccess"
+                        :before-upload="beforeAvatarUpload">
+                    <img v-if="imageUrl" :src="imageUrl" class="avatar">
+                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                </el-upload>
+            </el-form-item>
+            <el-form-item label="品牌排序" prop="seq">
+                <el-input v-model="brand.seq" placeholder="品牌排序权重"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button v-if="isAddOrEdit==1" @click="resetForm('brand')">重置</el-button>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="formVisible = false">关闭</el-button>
+            <el-button type="primary" @click="onSubmit('brand')">保存</el-button>
+        </div>
+    </el-dialog>
+
+    <el-table
+            :data="tableData"
+            height="610"
+            stripe border
+            style="width: 100%">
+        <el-table-column
+                prop="id"
+                label="编号"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                prop="name"
+                label="品牌名称">
+        </el-table-column>
+        <el-table-column
+                label="Logo"
+                width="100">
+            <template slot-scope="scope">
+                <img width="80px" height="30px" :src="scope.row.image" alt="">
+            </template>
+        </el-table-column>
+        <el-table-column
+                prop="letter"
+                label="首字母"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                prop="seq"
+                label="商品排序"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                label="操作"
+                width="180">
+            <template slot-scope="scope">
+                <el-button
+                        size="mini"
+                        icon="el-icon-edit"
+                        circle
+                        type="primary"
+                        @click="brandEdit(scope.$index, scope.row)">
+                </el-button>
+                <el-button
+                        size="mini"
+                        type="danger"
+                        icon="el-icon-delete"
+                        circle
+                        @click="brandDelete(scope.$index, scope.row)">
+                </el-button>
+            </template>
+        </el-table-column>
+    </el-table>
+
+    <el-pagination
+            @size-change="fetchData"
+            @current-change="fetchData"
+            :current-page.sync="currentPage"
+            :page-sizes="[10, 20, 30, 40]"
+            :page-size.sync="pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total">
+    </el-pagination>
+</div>
+
+<script>
+    new Vue({
+        el: "#app",
+        data() {
+            return {
+                tableData: [],
+                currentPage: 1,
+                pageSize: 10,
+                total: 10,
+                searchMap: {},
+                formVisible: false,
+                brand: {},
+                //添加：1 编辑：2 默认为0
+                isAddOrEdit: 0,
+                imageUrl: ''
+            }
+        },
+        created() {
+            this.fetchData();
+        },
+        methods: {
+            fetchData() {
+                axios.post("/brand/findByPage.do?page=" + this.currentPage + "&pageSize=" + this.pageSize + "", this.searchMap).then(res => {
+                    if (res.data != null) {
+                        this.tableData = res.data.rows;
+                        this.total = res.data.total;
+                    }
+                });
+            },
+            onSubmit() {
+                if (this.brand.name == undefined || this.brand.letter == undefined) {
+                    this.$alert("不能提交空表单!")
+                    return;
+                }
+                this.brand.image = this.imageUrl;
+                const h = this.$createElement;
+                this.$msgbox({
+                    title: '消息',
+                    message: h('p', null, [
+                        h('span', null, "确认操作名称为:  "),
+                        h('b', {style: 'color: teal'}, this.brand.name),
+                        h('span', null, '  的品牌吗?')
+                    ]),
+                    showCancelButton: true,
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    beforeClose: (action, instance, done) => {
+                        if (action === 'confirm') {
+                            instance.confirmButtonLoading = true;
+                            instance.confirmButtonText = '执行中...';
+                            setTimeout(() => {
+                                done();
+                                setTimeout(() => {
+                                    instance.confirmButtonLoading = false;
+                                }, 300);
+                                if (this.isAddOrEdit == 1) {
+                                    axios.post("/brand/add.do", this.brand).then(res => {
+                                        if (res.data.status == 200) {
+                                            this.$message({
+                                                type: 'success',
+                                                message: "新增成功"
+                                            });
+                                            this.fetchData();
+                                        } else {
+                                            this.$message({
+                                                type: 'success',
+                                                message: res.data.msg
+                                            });
+                                        }
+                                    });
+                                } else if (this.isAddOrEdit == 2) {
+                                    axios.post("/brand/update.do", this.brand).then(res => {
+                                        if (res.data.status == 200) {
+                                            this.$message({
+                                                type: 'success',
+                                                message: "编辑成功"
+                                            });
+                                            this.fetchData();
+                                        } else {
+                                            this.$message({
+                                                type: 'success',
+                                                message: res.data.msg
+                                            });
+                                        }
+                                    });
+                                }
+                                //添加：1 编辑：2 默认为0
+                                this.isAddOrEdit = 0;
+                                this.formVisible = false;
+                                this.brand = {};
+                            }, 3000);
+                        } else {
+                            done();
+                        }
+                    }
+                });
+            },
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+            addBrand() {
+                this.brand = {};
+                this.imageUrl = '';
+                //添加：1 编辑：2 默认为0
+                this.isAddOrEdit = 1;
+                this.formVisible = true;
+            },
+            brandEdit(index, row) {
+                //添加：1 编辑：2 默认为0
+                this.isAddOrEdit = 2;
+                this.brand.id = row.id;
+                this.brand.name = row.name;
+                this.brand.image = row.image;
+                this.brand.letter = row.letter;
+                this.brand.seq = row.seq;
+                this.formVisible = true;
+            },
+            brandDelete(index, row) {
+                const h = this.$createElement;
+                this.$msgbox({
+                    title: '消息',
+                    message: h('p', null, [
+                        h('span', null, '确认删除名称为:  '),
+                        h('b', {style: 'color: teal'}, row.name),
+                        h('span', null, '  的品牌吗?')
+                    ]),
+                    showCancelButton: true,
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    beforeClose: (action, instance, done) => {
+                        if (action === 'confirm') {
+                            instance.confirmButtonLoading = true;
+                            instance.confirmButtonText = '执行中...';
+                            setTimeout(() => {
+                                done();
+                                setTimeout(() => {
+                                    instance.confirmButtonLoading = false;
+                                }, 300);
+                                axios.get("/brand/deleteById.do?id=" + row.id + "").then(res => {
+                                    if (res.data.status == 200) {
+                                        this.$message({
+                                            type: 'success',
+                                            message: "删除成功"
+                                        });
+                                        this.fetchData();
+                                    } else {
+                                        this.$message({
+                                            type: 'success',
+                                            message: res.data.msg
+                                        });
+                                    }
+                                });
+                            }, 3000);
+                        } else {
+                            done();
+                        }
+                    }
+                });
+            },
+            handleAvatarSuccess(res, file) {
+                this.imageUrl = file.response;
+            },
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg';
+                const isLt2M = file.size / 1024 / 1024 < 2;
+
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只能是 JPG 格式!');
+                }
+                if (!isLt2M) {
+                    this.$message.error('上传头像图片大小不能超过 2MB!');
+                }
+                return isJPG && isLt2M;
+            }
+        }
+    })
+</script>
+
+</body>
+</html>
